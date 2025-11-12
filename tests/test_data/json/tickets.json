@@ -1,0 +1,32 @@
+[
+  {
+    "id": "TICKET-001",
+    "title": "Implement caching layer",
+    "description": "Add Redis caching to improve performance",
+    "status": "In Progress",
+    "assignee": "engineering",
+    "severity": "P1",
+    "created_date": "2024-01-15",
+    "product": "ProductA"
+  },
+  {
+    "id": "TICKET-002",
+    "title": "Update documentation",
+    "description": "Update API documentation to latest version",
+    "status": "Open",
+    "assignee": "engineering",
+    "severity": "P2",
+    "created_date": "2024-01-20",
+    "product": "ProductA"
+  },
+  {
+    "id": "TICKET-003",
+    "title": "Security audit",
+    "description": "Perform comprehensive security audit of infrastructure",
+    "status": "Scheduled",
+    "assignee": "devops",
+    "severity": "P0",
+    "created_date": "2024-02-01",
+    "product": "ProductB"
+  }
+]

@@ -1,0 +1,8 @@
+chunk_size: 512
+chunk_overlap: 64
+semantic_threshold: 0.5
+data_dirs:
+  pdfs: ./tests/test_data/pdfs
+  html: ./tests/test_data/html
+  json: ./tests/test_data/json
+  emails: ./tests/test_data/emails

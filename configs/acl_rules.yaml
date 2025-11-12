@@ -1,0 +1,25 @@
+roles:
+  Admin:
+    can_access: ["*"]
+    redaction_rules: []
+  Manager:
+    can_access: ["PUBLIC", "INTERNAL", "TEAM"]
+    redaction_rules:
+      - pattern: "secret_key|password"
+        replacement: "[REDACTED]"
+  Analyst:
+    can_access: ["PUBLIC", "INTERNAL"]
+    redaction_rules:
+      - pattern: "secret_key|password|api_token"
+        replacement: "[REDACTED]"
+  Contractor:
+    can_access: ["PUBLIC"]
+    redaction_rules:
+      - pattern: "secret_key|password|api_token|internal_metrics"
+        replacement: "[REDACTED]"
+
+document_type_access:
+  CONFIDENTIAL: ["Admin"]
+  INTERNAL: ["Admin", "Manager", "Analyst"]
+  TEAM: ["Admin", "Manager"]
+  PUBLIC: ["Admin", "Manager", "Analyst", "Contractor"]

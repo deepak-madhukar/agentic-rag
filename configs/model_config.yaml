@@ -1,0 +1,20 @@
+model:
+  provider: ollama
+  model_name: qwen2.5:1.5b
+  temperature: 0.3
+  max_tokens: 2048
+  top_p: 0.9
+  base_url: http://ollama:11434
+
+embedding:
+  provider: ollama
+  model_name: nomic-embed-text
+  base_url: http://ollama:11434
+
+retrieval:
+  top_k: 10
+  hybrid_alpha: 0.6
+  rrf_k: 60
+
+
+# replace base_url with localhost:11434 if running outside the container or  with your Ollama server URL.

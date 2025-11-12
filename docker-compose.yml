@@ -1,0 +1,47 @@
+version: "3.8"
+
+networks:
+  my-net:
+    driver: bridge
+    name: my-net
+
+services:
+  fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - INDEX_STORE_DIR=/app/indexes/store
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./indexes/store:/app/indexes/store
+      - ./logs:/app/logs
+      - ./configs:/app/configs
+    networks:
+      - my-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  faiss:
+    image: python:3.11-slim
+    container_name: faiss_index_server
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./indexes/store:/app/indexes/store
+    working_dir: /app
+    command: python -m http.server 8000 --directory /app/indexes/store
+    networks:
+      - my-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

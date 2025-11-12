@@ -1,0 +1,23 @@
+FROM: team-lead@company.com
+TO: engineering-team@company.com
+SUBJECT: Important Security Notice - Q4 2024
+DATE: Wed, 30 Oct 2024 14:22:00 +0000
+
+MIME-Version: 1.0
+Content-Type: text/plain
+
+Team,
+
+Please be aware of the following security updates required for ProductC:
+
+1. Update all dependencies to latest versions
+2. Enable two-factor authentication for all accounts
+3. Rotate API keys immediately
+4. Review access logs for suspicious activity
+
+The deadline for completion is December 15, 2024.
+
+Contact security@company.com with any questions.
+
+Thanks,
+Team Lead

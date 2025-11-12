@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "agentic-rag",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

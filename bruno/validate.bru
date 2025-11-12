@@ -1,0 +1,26 @@
+meta {
+  name: validate
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8000/validate-access
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "user_role": "Contractor",
+    "document_type": "INTERNAL"
+  }
+}
+
+settings {
+  encodeUrl: false
+}

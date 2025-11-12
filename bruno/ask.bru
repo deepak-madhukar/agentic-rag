@@ -1,0 +1,26 @@
+meta {
+  name: ask
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8000/ask
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "query": "What are the main features?",
+    "user_role": "Admin"
+  }
+}
+
+settings {
+  encodeUrl: false
+}
