@@ -132,7 +132,7 @@ async def run_evaluation():
     from ingestion_pipeline.index_builder import IndexBuilder
 
     index_dir = Path("indexes/store")
-    results_dir = Path("rag_pipeline/evaluation_results")
+    results_dir = Path("rag_test")
 
     if not index_dir.exists():
         logger.error("Index not found. Run ingestion pipeline first.")

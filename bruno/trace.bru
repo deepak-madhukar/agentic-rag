@@ -1,15 +1,16 @@
 meta {
   name: trace
   type: http
-  seq: 3
+  seq: 5
 }
 
 get {
   url: http://localhost:8000/debug/trace
-  body: none
+  body: json
   auth: inherit
 }
 
 settings {
   encodeUrl: false
+  timeout: 0
 }

@@ -4,17 +4,15 @@ model:
   temperature: 0.3
   max_tokens: 2048
   top_p: 0.9
-  base_url: http://ollama:11434
+  base_url: http://localhost:11434 # Use ollama instead of localhost if using Docker container
+
 
 embedding:
   provider: ollama
   model_name: nomic-embed-text
-  base_url: http://ollama:11434
+  base_url: http://localhost:11434 # Use ollama instead of localhost if using Docker container
 
 retrieval:
   top_k: 10
   hybrid_alpha: 0.6
   rrf_k: 60
-
-
-# replace base_url with localhost:11434 if running outside the container or  with your Ollama server URL.

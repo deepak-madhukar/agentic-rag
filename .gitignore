@@ -11,7 +11,7 @@ dist/
 build/
 *.egg-info/
 .DS_Store
-logs/
+.logs/
 indexes/store/
 .vscode/
 .idea/
@@ -24,4 +24,4 @@ dmypy.json
 .idea/
 *.log
 .ipynb_checkpoints/
-rag_pipeline/evaluation_results/
+rag_test/

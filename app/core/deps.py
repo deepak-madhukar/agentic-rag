@@ -73,7 +73,7 @@ class Dependencies:
 
     def _initialize_acl_checker(self, acl_file: Path) -> "ACLChecker":
         """Initialize ACL checker."""
-        from app.acl import ACLChecker
+        from app.service.acl import ACLChecker
 
         return ACLChecker(acl_file)
 
@@ -81,7 +81,7 @@ class Dependencies:
         self, model_config: dict
     ) -> Optional["LLMClient"]:
         """Initialize LLM client with Ollama configuration."""
-        from app.llm_client import LLMClient
+        from app.core.llm_client import LLMClient
 
         try:
             llm_config = model_config.get("model", {})

@@ -4,7 +4,7 @@ from logging.handlers import RotatingFileHandler
 
 
 def setup_logging(log_level: str = "INFO"):
-    log_dir = "logs"
+    log_dir = ".logs"
     os.makedirs(log_dir, exist_ok=True)
 
     logger = logging.getLogger()

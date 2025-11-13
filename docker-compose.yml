@@ -15,33 +15,25 @@ services:
     environment:
       - INDEX_STORE_DIR=/app/indexes/store
       - LOG_LEVEL=INFO
+    networks:
+      - my-net
     volumes:
       - ./indexes/store:/app/indexes/store
-      - ./logs:/app/logs
+      - ./.logs:/app/logs
       - ./configs:/app/configs
-    networks:
-      - my-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
-  faiss:
-    image: python:3.11-slim
-    container_name: faiss_index_server
-    ports:
-      - "8001:8000"
-    volumes:
-      - ./indexes/store:/app/indexes/store
-    working_dir: /app
-    command: python -m http.server 8000 --directory /app/indexes/store
-    networks:
-      - my-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+# Uncomment the following section to enable Neo4j service instead of using and llma-index knowledge graph store.
+  # neo4j:
+  #   image: neo4j:5.5
+  #   ports:
+  #     - "7474:7474" # Neo4j Browser
+  #     - "7687:7687" # Bolt protocol
+  #   environment:
+  #     - NEO4J_AUTH=neo4j/admin@123 # Default username/password
+  #   networks:
+  #     - my-net
+  #   volumes:
+  #     - ./kg_indexes/data:/data
+  #     - ./kg_indexes/logs:/logs
+  #     - ./kg_indexes/import:/var/lib/neo4j/import
+  #     - ./kg_indexes/plugins:/plugins

@@ -1,7 +1,7 @@
 meta {
   name: ask
   type: http
-  seq: 1
+  seq: 4
 }
 
 post {
@@ -16,11 +16,12 @@ headers {
 
 body:json {
   {
-    "query": "What are the main features?",
+    "query": "What are you?",
     "user_role": "Admin"
   }
 }
 
 settings {
   encodeUrl: false
+  timeout: 0
 }

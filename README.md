@@ -35,7 +35,7 @@ This system implements a hybrid RAG pipeline with:
 │   │   └── synthesizer.py       # Response synthesis with citations
 │   ├── pipeline.py              # Agent orchestration
 │   ├── evaluator.py             # RAG evaluation & metrics
-│   └── evaluation_results/      # Evaluation outputs
+|── rag_test/                    # Evaluation outputs
 ├── app/                         # FastAPI HTTP API
 │   ├── main.py                  # Main application
 │   ├── deps.py                  # Dependency injection
@@ -131,6 +131,7 @@ uvicorn app.main:app --reload
 ```
 
 ### Docker Deployment
+Update base_url in config/model_config.yaml
 
 ```bash
 docker-compose up -d
@@ -194,7 +195,7 @@ Import the "bruno" folder into your Bruno API client to load the included sample
   ```
 - **Test results:** 14/14 passing, ~0.5s total
 - **Evaluation metrics:** Faithfulness, Relevance, Hallucination, Latency
-- **Output:** `rag_pipeline/evaluation_results/results.json`, charts
+- **Output:** `rag_test/results.json`, charts
 
 ---
 
@@ -258,9 +259,9 @@ Import the "bruno" folder into your Bruno API client to load the included sample
 
 - **Add new document types:** Extend loaders in `ingestion_pipeline/loader.py`
 - **Change chunking logic:** Update `chunker.py`
-- **Swap LLM provider:** Edit `app/llm_client.py` and `configs/model_config.yaml`
+- **Swap LLM provider:** Edit `app/core/llm_client.py` and `configs/model_config.yaml`
 - **Tune retrieval:** Adjust RRF weights, chunk size in configs
-- **Add new API endpoints:** Implement in `app/main.py`
+- **Add new API endpoints:** Implement in `app/routers`
 - **Update ACL rules:** Edit `configs/acl_rules.yaml`
 
 ---

@@ -1,7 +1,7 @@
 import logging
 from fastapi import APIRouter, Depends
-from app.schemas import HealthResponse
-from app.deps import get_dependencies, Dependencies
+from app.models.schemas import HealthResponse
+from app.core.deps import get_dependencies, Dependencies
 
 logger = logging.getLogger(__name__)
 
