@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
-from app.core.deps import get_dependencies, Dependencies
+from app.core.dependecies import get_dependencies, Dependencies
 from app.service.trace_store import get_trace_store
 
 router = APIRouter()

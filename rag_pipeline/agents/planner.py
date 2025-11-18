@@ -29,17 +29,7 @@ class QueryPlan:
 
 
 class QueryPlanner:
-    """
-    Query planning agent.
-    Analyzes queries to determine: retrieval strategy, metadata filters,
-    and decompose complex queries into sub-queries.
-    
-    Capabilities:
-    - Analyzes query complexity
-    - Breaks complex queries into sub-queries
-    - Determines optimal retrieval strategy
-    - Extracts metadata filters
-    """
+    """Query planning agent for analyzing queries and decomposing complex requests."""
 
     # Strategy selection keywords
     HYBRID_KEYWORDS = ["what", "describe", "explain", "summarize", "compare", "analyze"]
@@ -86,20 +76,11 @@ class QueryPlanner:
     def plan_query(
         self, query: str, user_role: str = "Admin"
     ) -> QueryPlan:
-        """
-        Analyze query and produce a retrieval plan.
-        
-        If query is complex (multiple topics), decompose into sub-queries.
-        Otherwise, create a single retrieval plan.
-
-        Returns:
-            QueryPlan with strategy, filters, and optional sub-queries
-        """
+        """Analyze query and produce a retrieval plan."""
         strategy = self._determine_retrieval_strategy(query)
         filters = self._extract_metadata_filters(query)
         expected_sources = self._describe_sources(strategy)
 
-        # Check if query needs decomposition
         is_complex = self._is_complex_query(query)
         sub_queries = None
 
@@ -124,7 +105,6 @@ class QueryPlanner:
         """Detect if query is complex (multiple topics/operations)."""
         query_lower = query.lower()
         
-        # Check for multiple topics
         complex_indicators = [
             query_lower.count(" and ") > 1,
             " or " in query_lower and len(query_lower) > 80,
@@ -142,24 +122,13 @@ class QueryPlanner:
         parent_strategy: str,
         parent_filters: dict
     ) -> list[SubQuery]:
-        """
-        Decompose complex query into sub-queries.
-        
-        Example:
-        Input: "What features does ProductA have and which team manages it?"
-        Output: [
-            SubQuery("1", "What features does ProductA have?", "vector", {...}),
-            SubQuery("2", "Which team manages ProductA?", "graph", {...})
-        ]
-        """
+        """Decompose complex query into sub-queries."""
         sub_queries = []
         
-        # Split by "and" or "or"
         parts = query.lower().replace(" and ", "|").replace(" or ", "|").split("|")
         parts = [p.strip() for p in parts if p.strip()]
         
         if len(parts) <= 1:
-            # No actual decomposition needed
             return sub_queries
         
         logger.debug(f"Decomposing query into {len(parts)} sub-queries")
@@ -168,7 +137,6 @@ class QueryPlanner:
             sub_strategy = self._determine_retrieval_strategy(part)
             sub_filters = self._extract_metadata_filters(part)
             
-            # Merge with parent filters (parent filters take precedence)
             merged_filters = {**sub_filters, **parent_filters}
             
             sub_query = SubQuery(
@@ -176,7 +144,7 @@ class QueryPlanner:
                 text=part,
                 strategy=sub_strategy,
                 filters=merged_filters,
-                priority=1.0 / idx,  # First sub-query has highest priority
+                priority=1.0 / idx,
             )
             sub_queries.append(sub_query)
             
@@ -190,19 +158,15 @@ class QueryPlanner:
         """Determine retrieval strategy based on query keywords."""
         query_lower = query.lower()
 
-        # Check for hybrid strategy indicators
         if any(keyword in query_lower for keyword in self.HYBRID_KEYWORDS):
             return "hybrid"
 
-        # Check for graph strategy indicators
         if any(keyword in query_lower for keyword in self.GRAPH_KEYWORDS):
             return "graph"
 
-        # Check for vector strategy indicators
         if any(keyword in query_lower for keyword in self.VECTOR_KEYWORDS):
             return "vector"
 
-        # Default to hybrid
         return "hybrid"
 
     def _extract_metadata_filters(self, query: str) -> dict:
@@ -210,14 +174,12 @@ class QueryPlanner:
         filters = {}
         query_lower = query.lower()
 
-        # Extract product filter if configured
         if self.products:
             for product in self.products:
                 if product.lower() in query_lower:
                     filters["product"] = product
                     break
 
-        # Extract document type filter
         for doc_type in self.valid_document_types:
             if doc_type.lower() in query_lower:
                 filters["document_type"] = doc_type

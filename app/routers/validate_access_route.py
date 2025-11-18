@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from app.models.schemas import ValidateAccessRequest, ValidateAccessResponse
-from app.core.deps import get_dependencies, Dependencies
+from app.core.dependecies import get_dependencies, Dependencies
 
 router = APIRouter()
 

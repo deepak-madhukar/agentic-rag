@@ -31,6 +31,9 @@ def sample_documents():
 
 @pytest.mark.asyncio
 async def test_loader_pdfs(tmp_path):
+    from utils.embedding_client import EmbeddingClient
+    
+    embedding_client = EmbeddingClient(config_path="configs/model_config.yaml")
     pdf_dir = tmp_path / "pdfs"
     pdf_dir.mkdir()
 
@@ -39,6 +42,7 @@ async def test_loader_pdfs(tmp_path):
         html_dir=tmp_path / "html",
         json_dir=tmp_path / "json",
         email_dir=tmp_path / "emails",
+        embedding_client=embedding_client,
     )
 
     documents = await loader.load_all()
@@ -47,6 +51,9 @@ async def test_loader_pdfs(tmp_path):
 
 @pytest.mark.asyncio
 async def test_loader_html(tmp_path):
+    from utils.embedding_client import EmbeddingClient
+    
+    embedding_client = EmbeddingClient(config_path="configs/model_config.yaml")
     html_dir = tmp_path / "html"
     html_dir.mkdir()
 
@@ -58,6 +65,7 @@ async def test_loader_html(tmp_path):
         html_dir=html_dir,
         json_dir=tmp_path / "json",
         email_dir=tmp_path / "emails",
+        embedding_client=embedding_client,
     )
 
     documents = await loader.load_all()
@@ -76,10 +84,13 @@ def test_chunker(sample_documents):
 
 
 def test_index_builder(tmp_path, sample_documents):
+    from utils.embedding_client import EmbeddingClient
+    
+    embedding_client = EmbeddingClient(config_path="configs/model_config.yaml")
     chunker = SemanticChunker()
     chunks = chunker.chunk_documents(sample_documents)
 
-    index_builder = IndexBuilder(tmp_path)
+    index_builder = IndexBuilder(tmp_path, embedding_client=embedding_client)
     index_builder.build_vector_index(chunks)
     index_builder.build_knowledge_graph(sample_documents, chunks)
 
@@ -87,10 +98,13 @@ def test_index_builder(tmp_path, sample_documents):
 
 
 def test_chunk_retrieval(tmp_path, sample_documents):
+    from utils.embedding_client import EmbeddingClient
+    
+    embedding_client = EmbeddingClient(config_path="configs/model_config.yaml")
     chunker = SemanticChunker()
     chunks = chunker.chunk_documents(sample_documents)
 
-    index_builder = IndexBuilder(tmp_path)
+    index_builder = IndexBuilder(tmp_path, embedding_client=embedding_client)
     index_builder._store_chunk_metadata(chunks)
 
     chunk = index_builder.get_chunk_by_id(chunks[0].chunk_id)

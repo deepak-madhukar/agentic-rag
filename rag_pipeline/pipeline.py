@@ -6,7 +6,10 @@ from dataclasses import dataclass, field
 
 from rag_pipeline.agents.planner import QueryPlanner, SubQuery
 from rag_pipeline.agents.retriever import HybridRetriever
-from rag_pipeline.agents.synthesizer import SynthesizerAgent
+from rag_pipeline.agents.synthesizer import SynthesizerAgent, SynthesisResult
+from utils.llm_client import LLMClient
+from ingestion_pipeline.index_builder import IndexBuilder
+from utils.embedding_client import EmbeddingClient
 
 logger = logging.getLogger(__name__)
 
@@ -47,27 +50,7 @@ class AgentTrace:
 
 
 class RAGPipeline:
-    """
-    Main RAG pipeline orchestrator.
-    Coordinates: planning, retrieval, and synthesis for query processing.
-    
-    AGENT INTERACTION FLOW:
-    
-    1. PLANNER → PIPELINE
-       Output: QueryPlan (strategy, filters, sub_queries)
-    
-    2. RETRIEVER ← PIPELINE (receives plan from planner)
-       Input: Query + Plan (strategy, filters, sub_queries)
-       Output: Retrieved chunks
-    
-    3. SYNTHESIZER ← PIPELINE (receives chunks from retriever)
-       Input: Query + Retrieved chunks
-       Output: Answer with inline citations + hallucination score
-    
-    4. PIPELINE
-       Coordinates all agent outputs
-       Builds complete trace
-    """
+    """Main RAG pipeline orchestrator coordinating planning, retrieval, and synthesis."""
 
     # Default configuration
     DEFAULT_EMBEDDING_MODEL = "nomic-embed-text"
@@ -78,29 +61,18 @@ class RAGPipeline:
         kg_data: Optional[dict] = None,
         llm_client: Optional["LLMClient"] = None,
         acl_rules: Optional[dict] = None,
-        embedding_model_name: Optional[str] = None,
-        embedding_base_url: Optional[str] = None,
+        embedding_client: Optional["EmbeddingClient"] = None,
     ):
         """Initialize pipeline with all required components."""
-        # Agent initialization
         self.planner = QueryPlanner()
-        self.retriever = HybridRetriever(index_builder, kg_data, acl_rules)
+        self.retriever = HybridRetriever(index_builder, kg_data, acl_rules, embedding_client)
         self.synthesizer = SynthesizerAgent(llm_client)
 
-        # Store reference to index builder
         self.index_builder = index_builder
         self.llm_client = llm_client
+        self.embedding_client = embedding_client
 
-        # Configure retriever with embedding model name and base URL
-        embedding_model = embedding_model_name or self.DEFAULT_EMBEDDING_MODEL
-        embedding_url = embedding_base_url or "http://localhost:11434"
-        self.retriever.set_embedding_model_name(embedding_model)
-        self.retriever.set_embedding_base_url(embedding_url)
-
-        logger.debug(
-            "RAG pipeline initialized with "
-            f"planner, retriever, synthesizer (agentic architecture)"
-        )
+        logger.debug("RAG pipeline initialized")
 
     def process_query(
         self,
@@ -109,47 +81,12 @@ class RAGPipeline:
         user_role: str = "Admin",
         retrieval_depth: int = 10,
     ) -> tuple["SynthesisResult", AgentTrace]:
-        """
-        Process a single query end-to-end using agentic RAG flow.
-        
-        AGENT INTERACTION:
-        
-        Step 1: PLANNER AGENT
-          - Analyzes query complexity
-          - Breaks complex queries into sub-queries
-          - Determines retrieval strategy (vector/graph/hybrid)
-          - Extracts metadata filters
-          → Output: QueryPlan
-        
-        Step 2: RETRIEVER AGENT
-          - Receives plan from planner
-          - Executes retrieval based on strategy
-          - Handles both main query and sub-queries
-          - Applies filters and ACL
-          → Output: Retrieved chunks
-        
-        Step 3: SYNTHESIZER AGENT
-          - Receives retrieved chunks from retriever
-          - Generates answer with INLINE CITATIONS
-          - Validates every claim against chunks
-          - Computes hallucination score
-          → Output: Cited answer with metrics
-        
-        Step 4: ORCHESTRATION
-          - Build complete trace with all agent interactions
-          - Track metrics and timings
-
-        Returns:
-            Tuple of (synthesis_result, execution_trace)
-        """
+        """Process a query end-to-end through planning, retrieval, and synthesis stages."""
         start_time = time.time()
         logger.info(f"[{request_id}] Starting agentic RAG: {query[:100]}")
 
         interactions = []
 
-        # ═════════════════════════════════════════════════════════════
-        # STEP 1: PLANNER AGENT - Analyze query and create plan
-        # ═════════════════════════════════════════════════════════════
         planner_start = time.time()
         plan = self.planner.plan_query(query, user_role)
         planner_time = time.time() - planner_start
@@ -169,26 +106,19 @@ class RAGPipeline:
         )
 
         logger.info(
-            f"[{request_id}] AGENT: Planner decided "
-            f"strategy={plan.strategy}, filters={plan.filters}"
+            f"[{request_id}] Planner decided strategy={plan.strategy}, filters={plan.filters}"
         )
 
         if plan.sub_queries:
             logger.info(
-                f"[{request_id}] AGENT: Planner decomposed into "
-                f"{len(plan.sub_queries)} sub-queries"
+                f"[{request_id}] Decomposed into {len(plan.sub_queries)} sub-queries"
             )
 
-        # ═════════════════════════════════════════════════════════════
-        # STEP 2: RETRIEVER AGENT - Execute retrieval plan
-        # ═════════════════════════════════════════════════════════════
         retriever_start = time.time()
 
-        # Process main query + any sub-queries
         all_chunks = []
         sub_query_results = {}
 
-        # Main query retrieval
         main_chunks = self._retrieve_for_query(
             query=query,
             plan=plan,
@@ -199,11 +129,9 @@ class RAGPipeline:
         all_chunks.extend(main_chunks)
 
         logger.info(
-            f"[{request_id}] AGENT: Retriever returned "
-            f"{len(main_chunks)} chunks for main query"
+            f"[{request_id}] Retrieved {len(main_chunks)} chunks for main query"
         )
 
-        # Sub-query retrievals (if decomposed)
         if plan.sub_queries:
             for sub_query in plan.sub_queries:
                 sub_chunks = self._retrieve_for_query(
@@ -222,8 +150,7 @@ class RAGPipeline:
                 }
 
                 logger.info(
-                    f"[{request_id}] AGENT: Retriever returned "
-                    f"{len(sub_chunks)} chunks for {sub_query.sub_query_id}"
+                    f"[{request_id}] Retrieved {len(sub_chunks)} chunks for {sub_query.sub_query_id}"
                 )
 
         # Deduplicate chunks
@@ -245,9 +172,6 @@ class RAGPipeline:
             )
         )
 
-        # ═════════════════════════════════════════════════════════════
-        # STEP 3: SYNTHESIZER AGENT - Generate answer with citations
-        # ═════════════════════════════════════════════════════════════
         synthesizer_start = time.time()
 
         synthesis_result = self.synthesizer.synthesize(
@@ -275,14 +199,9 @@ class RAGPipeline:
         )
 
         logger.info(
-            f"[{request_id}] AGENT: Synthesizer generated answer "
-            f"with {len(synthesis_result.citations)} citations, "
-            f"hallucination_score={synthesis_result.hallucination_score:.2f}"
+            f"[{request_id}] Synthesizer generated answer with {len(synthesis_result.citations)} citations"
         )
 
-        # ═════════════════════════════════════════════════════════════
-        # STEP 4: BUILD EXECUTION TRACE
-        # ═════════════════════════════════════════════════════════════
         total_time = time.time() - start_time
         trace = self._create_trace(
             request_id=request_id,
@@ -319,7 +238,7 @@ class RAGPipeline:
         query_label = f"{sub_query_id}" if sub_query_id else "main"
 
         logger.debug(
-            f"[{request_id}] AGENT: Retriever executing {query_label} query: {query[:80]}"
+            f"[{request_id}] Retriever executing {query_label} query: {query[:80]}"
         )
 
         chunks = self.retriever.hybrid_retrieve(

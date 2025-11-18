@@ -2,6 +2,7 @@ import logging
 import re
 from typing import Optional
 from dataclasses import dataclass, field
+from utils.llm_client import LLMClient
 
 logger = logging.getLogger(__name__)
 
@@ -32,16 +33,7 @@ class SynthesisResult:
 
 
 class SynthesizerAgent:
-    """
-    Synthesis agent responsible for generating answers from retrieved chunks.
-    
-    Key capabilities:
-    - Generates answers with INLINE CITATIONS (e.g., "Feature X [chunk_5]")
-    - Validates every claim against retrieved chunks
-    - Detects hallucinations (unsupported claims)
-    - Tracks which sentences are justified by citations
-    - Ensures answer quality and reliability
-    """
+    """Agent for generating answers from retrieved chunks with inline citations."""
 
     # Prompt that forces citation adherence
     INSTRUCTION_PROMPT = """You are a helpful assistant that generates answers with inline citations.
@@ -56,8 +48,10 @@ RULES:
 
 Generate a response that JUSTIFIES every factual claim."""
 
-    def __init__(self, llm_client: Optional["LLMClient"] = None):
+    def __init__(self, llm_client: "LLMClient" = None):
         """Initialize with LLM client for answer generation."""
+        if llm_client is None:
+            raise ValueError("llm_client is required and cannot be None")
         self.llm_client = llm_client
 
     def synthesize(
@@ -66,32 +60,16 @@ Generate a response that JUSTIFIES every factual claim."""
         retrieved_chunks: list,
         synthesis_time_ms: int = 0,
     ) -> SynthesisResult:
-        """
-        Generate answer from retrieved chunks with inline citations.
-
-        Steps:
-        1. Build context from chunks with clear IDs
-        2. Generate answer with INLINE CITATIONS (must cite every claim)
-        3. Validate citations (check they actually exist in chunks)
-        4. Extract citation mappings
-        5. Compute hallucination score (claims without citations)
-        
-        Returns:
-            SynthesisResult with cited answer and metrics
-        """
-        # Step 1: Build context with clear chunk identifiers
+        """Generate answer from retrieved chunks with inline citations."""
         context = self._build_context_from_chunks(retrieved_chunks)
         chunk_id_to_content = {c.chunk_id: c for c in retrieved_chunks}
 
-        # Step 2: Generate answer (LLM should add inline citations)
         answer = self._generate_answer_with_citations(query, context)
 
-        # Step 3: Validate and extract citations from answer
         citations, cited_chunk_ids = self._extract_and_validate_citations(
             answer, chunk_id_to_content
         )
 
-        # Step 4: Analyze answer for hallucinations
         (
             hallucination_score,
             justified_count,
@@ -118,7 +96,6 @@ Generate a response that JUSTIFIES every factual claim."""
         context_parts = []
 
         for chunk in chunks:
-            # Format: [chunk_5] Content here...
             chunk_reference = f"[{chunk.chunk_id}]"
             context_parts.append(f"{chunk_reference} {chunk.content}")
 
@@ -128,10 +105,6 @@ Generate a response that JUSTIFIES every factual claim."""
 
     def _generate_answer_with_citations(self, query: str, context: str) -> str:
         """Generate answer using LLM with instruction to add inline citations."""
-        if not self.llm_client:
-            logger.error("LLM client not initialized; cannot generate answer")
-            raise RuntimeError("LLM client not initialized")
-
         prompt = self._build_citation_aware_prompt(query, context)
 
         try:
@@ -152,11 +125,7 @@ Generate a response that JUSTIFIES every factual claim."""
         )
 
     def _extract_and_validate_citations(self, answer: str, chunk_id_to_content: dict) -> tuple[list[Citation], set[str]]:
-        """
-        Extract citations from answer and validate they exist in chunks.
-        
-        Looks for patterns like [chunk_5], [chunk_12], etc.
-        """
+        """Extract and validate citations from answer."""
         citations = []
         cited_chunk_ids = set()
 
@@ -192,16 +161,7 @@ Generate a response that JUSTIFIES every factual claim."""
     def _compute_hallucination_score(
         self, answer: str, chunk_id_to_content: dict
     ) -> tuple[float, int, int]:
-        """
-        Compute hallucination score and track justified sentences.
-        
-        A sentence is "justified" if it:
-        1. Contains a [chunk_id] citation, OR
-        2. Is a meta-statement or explanation (not a factual claim)
-        
-        Returns:
-            (hallucination_score, justified_count, total_sentences)
-        """
+        """Compute hallucination score and track justified sentences."""
         # Split into sentences
         sentences = re.split(r'[.!?]+', answer)
         sentences = [s.strip() for s in sentences if s.strip()]
@@ -216,7 +176,6 @@ Generate a response that JUSTIFIES every factual claim."""
         for sentence in sentences:
             sentence_lower = sentence.lower()
 
-            # Check if sentence has a citation
             has_citation = "[chunk_" in sentence_lower
 
             if has_citation:
@@ -224,7 +183,6 @@ Generate a response that JUSTIFIES every factual claim."""
                 logger.debug(f"Justified (cited): {sentence[:80]}")
                 continue
 
-            # Check if it's a meta-statement (explanation, not claim)
             is_meta_statement = any(
                 phrase in sentence_lower
                 for phrase in [
@@ -244,7 +202,6 @@ Generate a response that JUSTIFIES every factual claim."""
                 logger.debug(f"Justified (meta): {sentence[:80]}")
                 continue
 
-            # Extract key terms (words > 4 chars) and check if supported by context
             key_terms = [w for w in sentence.split() if len(w) > 4]
             
             if not key_terms:
@@ -252,7 +209,6 @@ Generate a response that JUSTIFIES every factual claim."""
                 logger.debug(f"Justified (no claims): {sentence[:80]}")
                 continue
 
-            # Check if key terms exist in retrieved chunks
             is_supported = any(term in chunk_content for term in key_terms)
 
             if is_supported:

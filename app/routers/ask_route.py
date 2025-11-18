@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 import uuid
 import time
 from app.models.schemas import AskRequest, AskResponse, Citation
-from app.core.deps import get_dependencies, Dependencies
+from app.core.dependecies import get_dependencies, Dependencies
 from app.service.trace_store import get_trace_store
 
 router = APIRouter()

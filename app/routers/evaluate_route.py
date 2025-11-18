@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
-from app.core.deps import get_dependencies, Dependencies
+from app.core.dependecies import get_dependencies, Dependencies
 
 router = APIRouter()
 
@@ -18,15 +18,15 @@ async def run_evaluation(deps: Dependencies = Depends(get_dependencies)):
         from rag_pipeline.evaluator import RAGEvaluator
         from pathlib import Path
 
-        evaluator = RAGEvaluator(deps.rag_pipeline, Path("rag_test"))
+        evaluator = RAGEvaluator(deps.rag_pipeline, Path("results"))
         results = await evaluator.evaluate()
 
         return {
             "status": "completed",
-            "results_file": "rag_test/results.json",
+            "results_file": "results/results.json",
             "chart_files": [
-                "rag_test/faithfulness_by_query.png",
-                "rag_test/latency_histogram.png",
+                "results/faithfulness_by_query.png",
+                "results/latency_histogram.png",
             ],
             "summary": results.get("summary", {}),
         }

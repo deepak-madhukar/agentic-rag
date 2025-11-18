@@ -6,8 +6,7 @@ from fastapi import FastAPI, Depends
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 
-from app.utils.logging_config import setup_logging
-from app.router.health import router as health_router
+from app.core.logging_config import setup_logging
 from app.models.schemas import (
     AskRequest,
     AskResponse,
@@ -16,13 +15,13 @@ from app.models.schemas import (
     ValidateAccessResponse,
     TraceResponse,
 )
-from app.core.deps import get_dependencies, Dependencies
+from app.core.dependecies import get_dependencies, Dependencies
 from app.service.trace_store import get_trace_store
-from app.router.ask_route import router as ask_router
-from app.router.debug_trace_route import router as debug_trace_router
-from app.router.evaluate_route import router as evaluate_router
-from app.router.health import router as health_router
-from app.router.validate_access_route import router as validate_access_router
+from app.routers.ask_route import router as ask_router
+from app.routers.debug_trace_route import router as debug_trace_router
+from app.routers.evaluate_route import router as evaluate_router
+from app.routers.health import router as health_router
+from app.routers.validate_access_route import router as validate_access_router
 
 setup_logging(os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)

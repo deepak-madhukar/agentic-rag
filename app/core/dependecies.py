@@ -15,46 +15,37 @@ logger = logging.getLogger(__name__)
 
 
 class Dependencies:
-    """
-    Central dependency container for RAG system.
-    Initializes and manages: index builder, RAG pipeline, ACL checker, and LLM client.
-    """
+    """Central dependency container for RAG system."""
 
-    # Configuration file paths
     MODEL_CONFIG_PATH = Path("configs/model_config.yaml")
     ACL_RULES_PATH = Path("configs/acl_rules.yaml")
     DEFAULT_INDEX_DIR = "indexes/store"
     KNOWLEDGE_GRAPH_FILE = "kg_data.json"
 
     def __init__(self):
-        # Core components
         self.index_builder: Optional["IndexBuilder"] = None
         self.rag_pipeline: Optional["RAGPipeline"] = None
         self.acl_checker: Optional["ACLChecker"] = None
         self.llm_client: Optional["LLMClient"] = None
+        self.embedding_client: Optional["EmbeddingClient"] = None
         
-        # Trace tracking for debugging
         self.latest_trace: Optional[dict] = None
 
         self._initialize_all_components()
 
     def _initialize_all_components(self):
         """Initialize all system components in correct order."""
-        # Step 1: Load configuration files
         model_config = self._load_model_config(self.MODEL_CONFIG_PATH)
         acl_rules = self._load_acl_rules(self.ACL_RULES_PATH)
 
-        # Step 2: Get environment variables
         index_dir = Path(os.getenv("INDEX_STORE_DIR", self.DEFAULT_INDEX_DIR))
 
-        # Step 3: Initialize storage layer
+        self.llm_client = self._initialize_llm_client(model_config)
+        self.embedding_client = self._initialize_embedding_client(model_config)
+
         self.index_builder = self._initialize_index_builder(index_dir)
         self.acl_checker = self._initialize_acl_checker(self.ACL_RULES_PATH)
 
-        # Step 4: Initialize LLM layer
-        self.llm_client = self._initialize_llm_client(model_config)
-
-        # Step 5: Initialize RAG pipeline (uses all above)
         if self.index_builder:
             self.rag_pipeline = self._initialize_rag_pipeline(
                 index_dir, model_config, acl_rules
@@ -69,7 +60,7 @@ class Dependencies:
             return None
 
         logger.debug(f"Index builder initialized with directory: {index_dir}")
-        return IndexBuilder(index_dir)
+        return IndexBuilder(index_dir, embedding_client=self.embedding_client)
 
     def _initialize_acl_checker(self, acl_file: Path) -> "ACLChecker":
         """Initialize ACL checker."""
@@ -81,24 +72,17 @@ class Dependencies:
         self, model_config: dict
     ) -> Optional["LLMClient"]:
         """Initialize LLM client with Ollama configuration."""
-        from app.core.llm_client import LLMClient
+        from utils.llm_client import LLMClient
 
-        try:
-            llm_config = model_config.get("model", {})
-            model_name = llm_config.get("model_name", "qwen2.5:1.5b")
-            base_url = llm_config.get("base_url", "http://localhost:11434")
-            
-            llm_client = LLMClient(
-                base_url=base_url,
-                model=model_name,
-                temperature=llm_config.get("temperature", 0.3),
-                max_tokens=llm_config.get("max_tokens", 2048),
-            )
-            logger.info(f"LLM client initialized: {model_name}")
-            return llm_client
-        except Exception as e:
-            logger.error(f"Failed to initialize LLM client: {e}", exc_info=True)
-            return None
+        return LLMClient(config_path="configs/model_config.yaml")
+
+    def _initialize_embedding_client(
+        self, model_config: dict
+    ) -> Optional["EmbeddingClient"]:
+        """Initialize Embedding client with Ollama configuration."""
+        from utils.embedding_client import EmbeddingClient
+
+        return EmbeddingClient(config_path="configs/model_config.yaml")
 
     def _initialize_rag_pipeline(
         self, index_dir: Path, model_config: dict, acl_rules: dict
@@ -109,23 +93,13 @@ class Dependencies:
         # Load knowledge graph if available
         kg_data = self._load_knowledge_graph(index_dir)
 
-        # Extract embedding configuration
-        embedding_config = model_config.get("embedding", {})
-        embedding_model_name = embedding_config.get(
-            "model_name", "nomic-embed-text"
-        )
-        embedding_base_url = embedding_config.get(
-            "base_url", "http://localhost:11434"
-        )
-
         # Create and return pipeline
         pipeline = RAGPipeline(
+            llm_client=self.llm_client,
+            embedding_client=self.embedding_client,
+            acl_rules=acl_rules,
             index_builder=self.index_builder,
             kg_data=kg_data,
-            llm_client=self.llm_client,
-            acl_rules=acl_rules,
-            embedding_model_name=embedding_model_name,
-            embedding_base_url=embedding_base_url,
         )
         logger.debug("RAG pipeline initialized")
         return pipeline
@@ -178,11 +152,10 @@ class Dependencies:
 
     def is_ready(self) -> bool:
         """Check if system has loaded all required components."""
-        return (
-            self.index_builder is not None
-            and self.index_builder.load_index_exists()
-            and self.rag_pipeline is not None
-        )
+        logger.info(f"RAG Pipeline ready: {self.rag_pipeline is not None}")
+        logger.info(f"LLM Client ready: {self.llm_client is not None}")
+        logger.info(f"Embedding Client ready: {self.embedding_client is not None}")
+        return self.rag_pipeline is not None and self.llm_client is not None and self.embedding_client is not None
 
     def store_trace(self, trace: dict) -> None:
         """Store query trace for debugging and monitoring."""

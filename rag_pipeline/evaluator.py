@@ -130,18 +130,23 @@ class RAGEvaluator:
 async def run_evaluation():
     from pathlib import Path
     from ingestion_pipeline.index_builder import IndexBuilder
+    from utils.embedding_client import EmbeddingClient
+    from utils.llm_client import LLMClient
 
     index_dir = Path("indexes/store")
-    results_dir = Path("rag_test")
+    results_dir = Path("results")
 
     if not index_dir.exists():
         logger.error("Index not found. Run ingestion pipeline first.")
         return
 
-    index_builder = IndexBuilder(index_dir)
+    embedding_client = EmbeddingClient(config_path="configs/model_config.yaml")
+    llm_client = LLMClient(config_path="configs/model_config.yaml")
+    
+    index_builder = IndexBuilder(index_dir, embedding_client=embedding_client)
     from rag_pipeline.pipeline import RAGPipeline
 
-    pipeline = RAGPipeline(index_builder)
+    pipeline = RAGPipeline(index_builder=index_builder, llm_client=llm_client, embedding_client=embedding_client)
     evaluator = RAGEvaluator(pipeline, results_dir)
 
     await evaluator.evaluate()

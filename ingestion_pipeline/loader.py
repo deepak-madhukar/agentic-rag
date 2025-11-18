@@ -1,9 +1,10 @@
 import json
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 from datetime import datetime
 from dataclasses import dataclass, asdict
+from utils.embedding_client import EmbeddingClient
 
 logger = logging.getLogger(__name__)
 
@@ -34,11 +35,15 @@ class DocumentLoader:
         html_dir: Path,
         json_dir: Path,
         email_dir: Path,
+        embedding_client: "EmbeddingClient" = None,
     ):
+        if embedding_client is None:
+            raise ValueError("embedding_client is required and cannot be None")
         self.pdf_dir = Path(pdf_dir)
         self.html_dir = Path(html_dir)
         self.json_dir = Path(json_dir)
         self.email_dir = Path(email_dir)
+        self.embedding_client = embedding_client
 
     async def load_all(self) -> list[Document]:
         documents = []

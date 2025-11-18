@@ -5,19 +5,21 @@ import sqlite3
 from pathlib import Path
 from typing import Optional
 
+from utils.embedding_client import EmbeddingClient
+
 logger = logging.getLogger(__name__)
 
 
 class IndexBuilder:
-    def __init__(self, index_dir: Path, api_key: Optional[str] = None, model_name: Optional[str] = None, base_url: Optional[str] = None):
+    def __init__(self, index_dir: Path, embedding_client: "EmbeddingClient" = None):
+        if embedding_client is None:
+            raise ValueError("embedding_client is required and cannot be None")
         self.index_dir = Path(index_dir)
         self.index_dir.mkdir(parents=True, exist_ok=True)
         self.metadata_db = self.index_dir / "metadata.db"
         self.kg_file = self.index_dir / "kg_data.json"
         self.faiss_index_file = self.index_dir / "vector_index.bin"
-        self.api_key = api_key
-        self.model_name = model_name
-        self.base_url = base_url or "http://localhost:11434"
+        self.embedding_client = embedding_client
 
     def build_vector_index(self, chunks: list) -> None:
         try:
@@ -32,22 +34,8 @@ class IndexBuilder:
             raise ValueError("Cannot build vector index with empty chunks list")
 
         try:
-            from ollama import Client
-        except ImportError:
-            logger.error("ollama not available; cannot build vector index")
-            raise RuntimeError("Ollama required but not installed")
-
-        try:
-            logger.info(f"Initializing embedding model: {self.model_name or 'nomic-embed-text'}")
-            client = Client(host=self.base_url)
             texts = [chunk.content for chunk in chunks]
-            embeddings = []
-            for text in texts:
-                response = client.embeddings(
-                    model=self.model_name or "nomic-embed-text",
-                    prompt=text,
-                )
-                embeddings.append(response["embedding"])
+            embeddings = [self.embedding_client.get_embedding(text) for text in texts]
             embeddings = np.array(embeddings).astype("float32")
         except Exception as e:
             logger.error(f"Embedding generation failed: {e}", exc_info=True)

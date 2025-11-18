@@ -1,16 +1,18 @@
-model:
+# Use ollama instead of localhost if using Docker container
+llm:
   provider: ollama
   model_name: qwen2.5:1.5b
   temperature: 0.3
   max_tokens: 2048
   top_p: 0.9
-  base_url: http://localhost:11434 # Use ollama instead of localhost if using Docker container
+  base_url: http://localhost:11434 
 
 
 embedding:
   provider: ollama
   model_name: nomic-embed-text
-  base_url: http://localhost:11434 # Use ollama instead of localhost if using Docker container
+  base_url: http://localhost:11434
+
 
 retrieval:
   top_k: 10

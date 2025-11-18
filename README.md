@@ -35,7 +35,7 @@ This system implements a hybrid RAG pipeline with:
 │   │   └── synthesizer.py       # Response synthesis with citations
 │   ├── pipeline.py              # Agent orchestration
 │   ├── evaluator.py             # RAG evaluation & metrics
-|── rag_test/                    # Evaluation outputs
+|── results/                    # Evaluation outputs
 ├── app/                         # FastAPI HTTP API
 │   ├── main.py                  # Main application
 │   ├── deps.py                  # Dependency injection
@@ -195,7 +195,7 @@ Import the "bruno" folder into your Bruno API client to load the included sample
   ```
 - **Test results:** 14/14 passing, ~0.5s total
 - **Evaluation metrics:** Faithfulness, Relevance, Hallucination, Latency
-- **Output:** `rag_test/results.json`, charts
+- **Output:** `results/results.json`, charts
 
 ---
 

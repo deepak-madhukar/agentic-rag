@@ -3,6 +3,7 @@ from pathlib import Path
 from ingestion_pipeline.index_builder import IndexBuilder
 from ingestion_pipeline.chunker import Chunk
 from rag_pipeline.agents.retriever import HybridRetriever
+from utils.embedding_client import EmbeddingClient
 
 
 @pytest.fixture
@@ -39,17 +40,22 @@ def sample_chunks():
     ]
 
 
-def test_hybrid_retriever_initialization(tmp_path, sample_chunks):
-    index_builder = IndexBuilder(tmp_path)
-    retriever = HybridRetriever(index_builder)
-
-    assert retriever.rrf_k == 60
-    assert retriever.hybrid_alpha == 0.6
+@pytest.fixture
+def embedding_client():
+    return EmbeddingClient(config_path="configs/model_config.yaml")
 
 
-def test_rrf_fusion(tmp_path, sample_chunks):
-    index_builder = IndexBuilder(tmp_path)
-    retriever = HybridRetriever(index_builder)
+def test_hybrid_retriever_initialization(tmp_path, sample_chunks, embedding_client):
+    index_builder = IndexBuilder(tmp_path, embedding_client=embedding_client)
+    retriever = HybridRetriever(index_builder, embedding_client=embedding_client)
+
+    assert retriever.RRF_CONSTANT == 60
+    assert retriever.HYBRID_ALPHA == 0.6
+
+
+def test_rrf_fusion(tmp_path, sample_chunks, embedding_client):
+    index_builder = IndexBuilder(tmp_path, embedding_client=embedding_client)
+    retriever = HybridRetriever(index_builder, embedding_client=embedding_client)
 
     from rag_pipeline.agents.retriever import RetrievedResult
 
@@ -73,15 +79,15 @@ def test_rrf_fusion(tmp_path, sample_chunks):
         )
     ]
 
-    fused = retriever._rrf_fusion(vector_results, kg_results)
+    fused = retriever._fuse_results_with_rrf(vector_results, kg_results)
     assert len(fused) == 2
     assert fused[0].score > 0
     assert fused[1].score > 0
 
 
-def test_acl_filter(tmp_path, sample_chunks):
-    index_builder = IndexBuilder(tmp_path)
-    retriever = HybridRetriever(index_builder)
+def test_acl_filter(tmp_path, sample_chunks, embedding_client):
+    index_builder = IndexBuilder(tmp_path, embedding_client=embedding_client)
+    retriever = HybridRetriever(index_builder, embedding_client=embedding_client)
 
     from rag_pipeline.agents.retriever import RetrievedResult
 
@@ -102,9 +108,9 @@ def test_acl_filter(tmp_path, sample_chunks):
         ),
     ]
 
-    filtered = retriever._apply_acl_filter(results, "Analyst")
+    filtered = retriever._apply_acl_filters(results, "Analyst")
     assert len(filtered) == 2
 
-    filtered = retriever._apply_acl_filter(results, "Contractor")
+    filtered = retriever._apply_acl_filters(results, "Contractor")
     assert len(filtered) == 1
     assert filtered[0].metadata["document_type"] == "PUBLIC"

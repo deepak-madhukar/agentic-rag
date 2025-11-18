@@ -19,7 +19,7 @@ services:
       - my-net
     volumes:
       - ./indexes/store:/app/indexes/store
-      - ./.logs:/app/logs
+      - ./app_logs:/app/logs
       - ./configs:/app/configs
 
 # Uncomment the following section to enable Neo4j service instead of using and llma-index knowledge graph store.
